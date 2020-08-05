@@ -1,11 +1,11 @@
 [package]
-name = "rustic_journal"
+name = "journalctl-sys"
 version = "0.1.0"
 authors = ["cogle <thecogle@gmail.com>"]
 edition = "2018"
-description = "A sever/client utility to hook into journalctl"
+description = "Rust FFI bindings for journalctl"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-tokio = { version = "0.2", features = ["full"] }
+[build-dependencies]
+pkg-config = { version = "0.3.18" }
