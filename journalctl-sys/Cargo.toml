@@ -4,12 +4,8 @@ version = "0.1.0"
 authors = ["cogle <thecogle@gmail.com>"]
 edition = "2018"
 description = "Rust FFI bindings for journalctl"
-build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
 pkg-config = { version = "0.3.18" }
-
-[dependencies]
-libc = {version = "0.2.77"}

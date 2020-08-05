@@ -1,8 +1,5 @@
-use pkg_config;
-
-static LIBRARY_NAME: &str = "systemd";
+extern crate pkg_config;
 
 fn main() {
-    pkg_config::probe_library(LIBRARY_NAME).unwrap();
-    println!("cargo:rustc-link-lib={}", LIBRARY_NAME)
+    pkg_config::probe_library("systemd").unwrap();
 }
