@@ -1,1 +1,1 @@
-extern crate journalctl-sys as journal-ffi;
+extern crate journalctl-sys as sys;

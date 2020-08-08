@@ -1,3 +1,6 @@
+#![allow(non_camel_case_types)]
+
+use std::os::raw::c_int;
 
 pub const SD_JOURNAL_LOCAL_ONLY: c_int = 1 << 0;
 pub const SD_JOURNAL_RUNTIME_ONLY: c_int = 1 << 1;
@@ -10,5 +13,5 @@ pub const SD_JOURNAL_INCLUDE_DEFAULT_NAMESPACE: c_int = 1 << 6;
 pub enum sd_journal {}
 
 extern "C" {
-    pub fn sd_journal_open(ret: mut* mut* sd_journal, flags: c_int) -> c_int;
+    pub fn sd_journal_open(ret: *mut *mut sd_journal, flags: c_int) -> c_int;
 }
