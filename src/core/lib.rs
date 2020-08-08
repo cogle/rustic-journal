@@ -1,5 +1,1 @@
-use journalctl_sys as sys;
-
-#[macro_use]
-mod utils;
-pub mod journal;
+extern crate journalctl-sys as journal-ffi;
