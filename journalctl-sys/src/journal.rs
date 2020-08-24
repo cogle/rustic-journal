@@ -10,7 +10,10 @@ pub const SD_JOURNAL_OS_ROOT: c_int = 1 << 4;
 pub const SD_JOURNAL_ALL_NAMESPACES: c_int = 1 << 5;
 pub const SD_JOURNAL_INCLUDE_DEFAULT_NAMESPACE: c_int = 1 << 6;
 
-pub enum sd_journal {}
+// Opaque Struct Documentation here
+// https://doc.rust-lang.org/1.30.0/book/first-edition/ffi.html#representing-opaque-structs
+#[repr(C)] 
+pub struct sd_journal { private: [u8; 0] }
 
 extern "C" {
     pub fn sd_journal_open(ret: *mut *mut sd_journal, flags: c_int) -> c_int;
