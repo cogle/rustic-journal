@@ -1,1 +1,3 @@
-extern crate journalctl-sys as sys;
+extern crate journalctl_sys as sys;
+
+pub mod journal;

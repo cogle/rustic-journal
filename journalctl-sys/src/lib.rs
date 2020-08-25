@@ -1,1 +1,1 @@
-mod journal;
+pub mod journal;
