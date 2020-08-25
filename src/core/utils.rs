@@ -1,3 +1,5 @@
-#[macro_use]
-mod macros;
-pub mod c_error;
+macro_rules! journal_try {
+    () => {
+        
+    };
+}
