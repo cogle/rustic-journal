@@ -14,3 +14,14 @@ impl Journal {
         ));
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn journal_new() {
+        let _j =  Journal::new();
+    }
+}
+
