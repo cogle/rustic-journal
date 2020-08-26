@@ -1,13 +1,8 @@
 #[macro_use]
-pub mod macros {
+mod macros {
     macro_rules! journal_try {
         ($func:expr) => {
-            let rc = unsafe {
-                $func
-            };
-        }
+            let rc = unsafe { $func };
+        };
     }
 }
-
-
- 
