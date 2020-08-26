@@ -1,3 +1,3 @@
 #[macro_use]
-pub mod macros;
+mod macros;
 pub mod c_error;

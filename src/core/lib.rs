@@ -1,5 +1,5 @@
 extern crate journalctl_sys as sys;
 
 #[macro_use]
-pub mod utils;
+mod utils;
 pub mod journal;
