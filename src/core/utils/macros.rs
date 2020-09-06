@@ -1,16 +1,6 @@
-#[macro_use]
-mod macros {
-    macro_rules! journal_try {
-        ($func:expr) => {
-            {
-                let rc = unsafe { $func };
-                
-                if (rc != 0) {
-
-                }
-
-                rc
-            }
-        };
-    }
+#[macro_export]
+macro_rules! journal_try {
+    ($func:expr) => {{
+        unsafe { crate::utils::c_error::check_c_error_code($func) }
+    }};
 }
