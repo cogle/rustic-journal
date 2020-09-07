@@ -4,7 +4,7 @@ pub struct CError {
     pub error_code: i32,
 }
 
-pub fn check_c_error_code(error_code: i32) ->Result<(), CError> {
+pub fn check_c_error_code(error_code: i32) -> Result<(), CError> {
     if error_code == 0 {
         return Ok(());
     }
