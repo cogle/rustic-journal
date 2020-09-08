@@ -1,6 +1,6 @@
 #![allow(non_camel_case_types)]
 
-use std::os::raw::c_int;
+use std::os::raw::{c_int};
 
 pub const SD_JOURNAL_LOCAL_ONLY: c_int = 1 << 0;
 pub const SD_JOURNAL_RUNTIME_ONLY: c_int = 1 << 1;
