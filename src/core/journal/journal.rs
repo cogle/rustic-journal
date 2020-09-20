@@ -39,8 +39,12 @@ impl Journal {
         // According to the man pages if we have reached the end we will return 0 otherwise 1 will be returned.
         let inc = ffi_invoke_and_expect!(sys::sd_journal_next(self.journal_handle));
 
-        if inc == 1 {}
+        if inc == 1 {
+            self.read_next()
+        }
     }
+
+    fn read_next(&mut self) {}
 }
 
 #[test]
