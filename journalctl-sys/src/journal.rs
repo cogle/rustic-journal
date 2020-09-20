@@ -17,5 +17,6 @@ pub struct sd_journal { private: [u8; 0] }
 
 extern "C" {
     pub fn sd_journal_open(ret: *mut *mut sd_journal, flags: c_int) -> c_int;
+    pub fn sd_journal_next(j: *mut sd_journal) -> c_int;
     pub fn sd_journal_close(j: *mut sd_journal);
 }

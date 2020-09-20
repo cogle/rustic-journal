@@ -1,7 +1,7 @@
 use std::ffi::CStr;
 
-use nix::errno::errno;
 use crate::sys::helpers as sys_helpers;
+use nix::errno::errno;
 
 #[derive(Debug)]
 pub struct CError {
@@ -9,9 +9,9 @@ pub struct CError {
     pub error_code: i32,
 }
 
-pub fn check_c_error_code(result: i32) -> Result<(), CError> {
-    if result == 0 {
-        return Ok(());
+pub fn check_c_error_code(result: i32) -> Result<i32, CError> {
+    if result >= 0 {
+        return Ok(result);
     }
 
     let error_code = errno();
