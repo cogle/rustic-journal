@@ -2,7 +2,7 @@ extern crate libc;
 
 use crate::sys::journal as sys;
 use libc::{c_void, size_t};
-
+use std::collections::HashMap;
 use std::ffi::CStr;
 
 pub struct Journal {
@@ -90,7 +90,9 @@ fn test_journal_advance() {
     // Eventually this test can be, I submit a message to the
     // daemon and attempt to read it back.
     let mut j: Journal = Journal::new();
-    j.advance();
+    for _ in 0..10 {
+        j.advance();
+    }
 }
 
 #[test]
