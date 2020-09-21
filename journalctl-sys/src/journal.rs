@@ -19,12 +19,13 @@ pub struct sd_journal {
 }
 
 extern "C" {
-    pub fn sd_journal_open(ret: *mut *mut sd_journal, flags: c_int) -> c_int;
-    pub fn sd_journal_next(j: *mut sd_journal) -> c_int;
     pub fn sd_journal_close(j: *mut sd_journal);
     pub fn sd_journal_enumerate_data(
         j: *mut sd_journal,
         data: *const *mut c_void,
         len: *mut size_t,
     ) -> c_int;
+    pub fn sd_journal_next(j: *mut sd_journal) -> c_int;
+    pub fn sd_journal_open(ret: *mut *mut sd_journal, flags: c_int) -> c_int;
+    pub fn sd_journal_restart_data(j: *mut sd_journal);
 }
