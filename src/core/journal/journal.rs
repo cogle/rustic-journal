@@ -1,4 +1,9 @@
+extern crate libc;
+
 use crate::sys::journal as sys;
+use libc::{c_void, size_t};
+
+use std::ffi::CStr;
 
 pub struct Journal {
     journal_handle: *mut sys::sd_journal,
@@ -40,11 +45,38 @@ impl Journal {
         let inc = ffi_invoke_and_expect!(sys::sd_journal_next(self.journal_handle));
 
         if inc == 1 {
-            self.read_next()
+            self.obtain_journal_data()
         }
     }
 
-    fn read_next(&mut self) {}
+    fn obtain_journal_data(&mut self) {
+        let mut data_ptr = std::ptr::null_mut() as *mut c_void;
+        let mut len: size_t = 0;
+
+        unsafe {
+            sys::sd_journal_restart_data(self.journal_handle);
+        }
+
+        loop {
+            let remaining = ffi_invoke_and_expect!(sys::sd_journal_enumerate_data(
+                self.journal_handle,
+                &data_ptr,
+                &mut len
+            ));
+
+            let message = unsafe {
+                let c_str: &CStr = CStr::from_ptr(data_ptr as *const _);
+                c_str.to_str().unwrap().to_owned()
+            };
+
+            println!("{}", message);
+            println!("Got message of len {}", len);
+
+            if remaining == 0 {
+                break;
+            }
+        }
+    }
 }
 
 #[test]

@@ -23,3 +23,4 @@ path = "src/client/bin/main.rs"
 tokio = { version = "0.2", features = ["full"] }
 journalctl-sys = { version = "0.1.0", path = "journalctl-sys" }
 nix = { version = "0.18.0" }
+libc = {version = "0.2.77"}
