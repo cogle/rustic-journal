@@ -1,9 +1,26 @@
 [package]
-name = "RusticJournal"
+name = "rustic_journal"
 version = "0.1.0"
 authors = ["cogle <thecogle@gmail.com>"]
 edition = "2018"
+description = "A sever/client utility to hook into journalctl"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+name = "journal"
+path = "src/core/lib.rs"
+
+[[bin]]
+name = "server"
+path = "src/server/bin/main.rs"
+
+[[bin]]
+name = "client"
+path = "src/client/bin/main.rs"
+
 [dependencies]
+tokio = { version = "0.2", features = ["full"] }
+journalctl-sys = { version = "0.1.0", path = "journalctl-sys" }
+nix = { version = "0.18.0" }
+libc = {version = "0.2.77"}
