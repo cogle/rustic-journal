@@ -54,10 +54,14 @@ impl Journal {
         let mut len: size_t = 0;
 
         unsafe {
+            // https://man7.org/linux/man-pages/man3/sd_journal_restart_data.3.html
+            // This restarts the data, in the sense that it allows you to grab the next line.
             sys::sd_journal_restart_data(self.journal_handle);
         }
 
         loop {
+            // https://man7.org/linux/man-pages/man3/sd_journal_enumerate_data.3.html
+            // https://www.freedesktop.org/software/systemd/man/sd_journal_get_data.html
             let remaining = ffi_invoke_and_expect!(sys::sd_journal_enumerate_data(
                 self.journal_handle,
                 &data_ptr,
@@ -69,36 +73,14 @@ impl Journal {
                 c_str.to_str().unwrap().to_owned()
             };
 
-            println!("{}", message);
-            println!("Got message of len {}", len);
+            println!(
+                "Got message of len: {}\tMessage: {}\t Remaining: {}",
+                len, message, remaining
+            );
 
             if remaining == 0 {
                 break;
             }
         }
     }
-}
-
-#[test]
-fn test_journal_new() {
-    // Test should simply not panic
-    let _j: Journal = Journal::new();
-}
-
-#[test]
-fn test_journal_advance() {
-    // Eventually this test can be, I submit a message to the
-    // daemon and attempt to read it back.
-    let mut j: Journal = Journal::new();
-    for _ in 0..10 {
-        j.advance();
-    }
-}
-
-#[test]
-fn test_journal_read() {
-    // Eventually this test can be, I submit a message to the
-    // daemon and attempt to read it back.
-    let mut j: Journal = Journal::new();
-    j.read();
 }
