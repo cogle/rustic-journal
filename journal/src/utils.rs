@@ -26,3 +26,10 @@ pub fn check_c_error_code(result: i32) -> Result<i32, CError> {
         error_code: error_code,
     });
 }
+
+macro_rules! ffi_invoke_and_expect {
+    ($func:expr) => {{
+        unsafe { crate::utils::check_c_error_code($func).unwrap() }
+    }};
+}
+

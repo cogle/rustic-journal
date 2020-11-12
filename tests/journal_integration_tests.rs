@@ -1,10 +1,9 @@
-extern crate core::lib::Journal;
-
-#[test]
-fn test_journal_new() {
-    // Test should simply not panic
-    let _j: Journal = Journal::new();
-}
+//
+//#[test]
+//fn test_journal_new() {
+//    // Test should simply not panic
+//    let _j: Journal = Journal::new();
+//}
 
 //#[test]
 //fn test_journal_advance() {
