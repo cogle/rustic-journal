@@ -1,5 +1,3 @@
-extern crate libc;
-
 use crate::sys::journal as journal_c;
 use libc::{c_void, size_t};
 use std::collections::HashMap;

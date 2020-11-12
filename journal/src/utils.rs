@@ -1,7 +1,6 @@
-use std::ffi::CStr;
-
 use crate::sys::helpers as sys_helpers;
 use nix::errno::errno;
+use std::ffi::CStr;
 
 #[derive(Debug)]
 pub struct CError {
@@ -32,4 +31,3 @@ macro_rules! ffi_invoke_and_expect {
         unsafe { crate::utils::check_c_error_code($func).unwrap() }
     }};
 }
-
