@@ -1,4 +1,4 @@
-extern crate core::lib::Journal;
+use journal::Journal;
 
 #[test]
 fn test_journal_new() {
