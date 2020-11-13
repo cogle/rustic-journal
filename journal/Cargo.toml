@@ -1,19 +1,12 @@
 [package]
-name = "rustic_journal"
+name = "journal"
 version = "0.1.0"
 authors = ["cogle <thecogle@gmail.com>"]
 edition = "2018"
-description = "A sever/client utility to hook into journalctl"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[workspace]
-
-members = [
-    "journal"
-]
-
-
 [dependencies]
-journal = {path = "./journal"}
-
+libc = {version = "0.2.77"}
+nix = { version = "0.18.0" }
+journalctl-sys = { version = "0.1.0", path = "../journalctl-sys" }

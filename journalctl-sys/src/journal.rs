@@ -11,7 +11,7 @@ pub const SD_JOURNAL_OS_ROOT: c_int = 1 << 4;
 pub const SD_JOURNAL_ALL_NAMESPACES: c_int = 1 << 5;
 pub const SD_JOURNAL_INCLUDE_DEFAULT_NAMESPACE: c_int = 1 << 6;
 
-// Opaque Struct Documentation here
+// Opaque Struct Documentation reference here
 // https://doc.rust-lang.org/1.30.0/book/first-edition/ffi.html#representing-opaque-structs
 #[repr(C)]
 pub struct sd_journal {
