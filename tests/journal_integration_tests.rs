@@ -17,11 +17,14 @@ fn test_journal_new() {
 //    }
 //}
 //
-//#[test]
-//fn test_journal_read() {
-//    // Eventually this test can be, I submit a message to the
-//    // daemon and attempt to read it back.
-//    let mut j: Journal = Journal::new();
-//    j.read();
-//}
-//
+
+#[test]
+fn test_journal_read() {
+    // Eventually this test can be, I submit a message to the
+    // daemon and attempt to read it back.
+    let mut j: Journal = Journal::new();
+    for i in 0..1000 {
+        j.read();
+    }
+}
+

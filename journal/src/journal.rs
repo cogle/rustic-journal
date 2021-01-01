@@ -3,8 +3,11 @@ use libc::{c_void, size_t};
 use std::collections::HashMap;
 use std::ffi::CStr;
 
+// 1 TODO how to format data, journalctl offers some sort of fmt
+
 pub struct Journal {
     journal_handle: *mut journal_c::sd_journal,
+    journal_entries: HashMap<String, String>,
 }
 
 impl Drop for Journal {
@@ -26,6 +29,7 @@ impl Journal {
 
         Journal {
             journal_handle: handle,
+            journal_entries: HashMap::new(),
         }
     }
 
@@ -33,6 +37,7 @@ impl Journal {
     // TODO: Make this async so that when we reach the end we wait via sd_journal_wait()
     // https://man7.org/linux/man-pages/man3/sd_journal_wait.3.html
     pub fn read(&mut self) {
+        self.journal_entries.clear();
         self.advance();
     }
 
@@ -66,15 +71,16 @@ impl Journal {
                 &mut len
             ));
 
-            let message = unsafe {
+            let journal_message = unsafe {
                 let c_str: &CStr = CStr::from_ptr(data_ptr as *const _);
-                c_str.to_str().unwrap().to_owned()
+                c_str.to_str().unwrap()
             };
 
-            println!(
-                "Got message of len: {}\tMessage: {}\t Remaining: {}",
-                len, message, remaining
-            );
+            // The key is '=' sign
+            let mut key_split = journal_message.split('=');
+            
+
+            
 
             if remaining == 0 {
                 break;
