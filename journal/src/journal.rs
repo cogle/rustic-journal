@@ -76,11 +76,13 @@ impl Journal {
                 c_str.to_str().unwrap()
             };
 
-            // The key is '=' sign
-            let mut key_split = journal_message.split('=');
-            
+            let mut split_iter = journal_message.splitn(2, '=');
 
-            
+            if let Some(key) = split_iter.next() {
+                if let Some(msg) = split_iter.next() {
+                    self.journal_entries.insert(key.to_string(), msg.to_string());
+                }
+            }
 
             if remaining == 0 {
                 break;
