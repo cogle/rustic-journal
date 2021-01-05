@@ -39,6 +39,7 @@ impl Journal {
     pub fn read(&mut self) {
         self.journal_entries.clear();
         self.advance();
+        println!("{:#?}", self.journal_entries);
     }
 
     // TODO: Prolly want to return some sort of data struct here. Variant None or Some
@@ -75,8 +76,7 @@ impl Journal {
                 let c_str: &CStr = CStr::from_ptr(data_ptr as *const _);
                 c_str.to_str().unwrap()
             };
-
-            let mut split_iter = journal_message.splitn(2, '=');
+            let mut split_iter = journal_message[..len].splitn(2, '=');
 
             if let Some(key) = split_iter.next() {
                 if let Some(msg) = split_iter.next() {
@@ -96,3 +96,6 @@ fn test_journal_new() {
     // Test should simply not panic
     let _j: Journal = Journal::new();
 }
+
+
+//SYSLOG_IDENTIFIER=kernel
