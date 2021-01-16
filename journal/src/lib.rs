@@ -3,6 +3,6 @@ use journalctl_sys as sys;
 #[macro_use]
 mod utils;
 
-mod log_format;
 mod journal;
+mod log_format;
 pub use self::journal::Journal;

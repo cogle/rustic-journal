@@ -1,9 +1,12 @@
+use crate::log_format;
 use crate::sys::journal as journal_c;
 use libc::{c_void, size_t};
 use std::collections::HashMap;
 use std::ffi::CStr;
 
 // 1 TODO how to format data, journalctl offers some sort of fmt
+
+// https://github.com/systemd/systemd/blob/master/src/journal/journalctl.c
 
 pub struct Journal {
     journal_handle: *mut journal_c::sd_journal,
@@ -33,16 +36,14 @@ impl Journal {
         }
     }
 
-    // TODO: Prolly want to return some sort of data struct here.
+    // TODO: Will return an optional `str with the lifetime of this that way it can be copied if needed.
     // TODO: Make this async so that when we reach the end we wait via sd_journal_wait()
     // https://man7.org/linux/man-pages/man3/sd_journal_wait.3.html
-    pub fn read(&mut self) {
+    pub fn read(&mut self) -> Option<String> {
         self.journal_entries.clear();
         match self.advance() {
-            Some(_x) => {
-                println!("{:#?}", self.journal_entries);
-            },
-            _ => {},
+            Some(_) => return Some(log_format::default_fmt(&self.journal_entries)),
+            _ => return None,
         }
     }
 
@@ -54,7 +55,7 @@ impl Journal {
 
         if inc == 1 {
             self.obtain_journal_data();
-            return Some(())
+            return Some(());
         }
 
         None
@@ -87,7 +88,8 @@ impl Journal {
 
             if let Some(key) = split_iter.next() {
                 if let Some(msg) = split_iter.next() {
-                    self.journal_entries.insert(key.to_string(), msg.to_string());
+                    self.journal_entries
+                        .insert(key.to_string(), msg.to_string());
                 }
             }
 
@@ -103,6 +105,5 @@ fn test_journal_new() {
     // Test should simply not panic
     let _j: Journal = Journal::new();
 }
-
 
 //SYSLOG_IDENTIFIER=kernel
