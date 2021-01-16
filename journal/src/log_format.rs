@@ -18,3 +18,6 @@ const DEFAULT_FIELD_KEYS: [&'static str: ] = ["_PID", "_COMM"];
     PARSE_FIELD_VEC_ENTRY("_SYSTEMD_USER_UNIT=", &user_unit, &user_unit_len),
     PARSE_FIELD_VEC_ENTRY("DOCUMENTATION=", &documentation_url, &documentation_url_len),
 */
+
+// https://github.com/systemd/systemd/blob/master/src/journal/journalctl.c
+// https://doc.rust-lang.org/std/fmt/

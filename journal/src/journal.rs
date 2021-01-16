@@ -38,19 +38,26 @@ impl Journal {
     // https://man7.org/linux/man-pages/man3/sd_journal_wait.3.html
     pub fn read(&mut self) {
         self.journal_entries.clear();
-        self.advance();
-        println!("{:#?}", self.journal_entries);
+        match self.advance() {
+            Some(_x) => {
+                println!("{:#?}", self.journal_entries);
+            },
+            _ => {},
+        }
     }
 
     // TODO: Prolly want to return some sort of data struct here. Variant None or Some
-    fn advance(&mut self) {
+    fn advance(&mut self) -> Option<()> {
         // https://www.man7.org/linux/man-pages/man3/sd_journal_next.3.html
         // According to the man pages if we have reached the end we will return 0 otherwise 1 will be returned.
         let inc = ffi_invoke_and_expect!(journal_c::sd_journal_next(self.journal_handle));
 
         if inc == 1 {
-            self.obtain_journal_data()
+            self.obtain_journal_data();
+            return Some(())
         }
+
+        None
     }
 
     fn obtain_journal_data(&mut self) {
