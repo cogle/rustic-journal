@@ -4,6 +4,8 @@ use libc::{c_void, size_t};
 use std::collections::HashMap;
 use std::ffi::CStr;
 
+const JOURNAL_TIME_KEY: &'static str = "JOURNAL_ENTRY_TIMESTAMP";
+
 // 1 TODO how to format data, journalctl offers some sort of fmt
 
 // https://github.com/systemd/systemd/blob/master/src/journal/journalctl.c
@@ -36,7 +38,6 @@ impl Journal {
         }
     }
 
-    // TODO: Will return an optional `str with the lifetime of this that way it can be copied if needed.
     // TODO: Make this async so that when we reach the end we wait via sd_journal_wait()
     // https://man7.org/linux/man-pages/man3/sd_journal_wait.3.html
     pub fn read(&mut self) -> Option<String> {
@@ -47,7 +48,6 @@ impl Journal {
         }
     }
 
-    // TODO: Prolly want to return some sort of data struct here. Variant None or Some
     fn advance(&mut self) -> Option<()> {
         // https://www.man7.org/linux/man-pages/man3/sd_journal_next.3.html
         // According to the man pages if we have reached the end we will return 0 otherwise 1 will be returned.
@@ -59,6 +59,21 @@ impl Journal {
         }
 
         None
+    }
+
+    fn get_journal_monotonic(&mut self) {
+        // TODO currently this is a null pointer for the last arg but should be of type sd_id128_t
+        // https://man7.org/linux/man-pages/man3/sd_journal_get_monotonic_usec.3.html
+        //int sd_journal_get_monotonic_usec(sd_journal *j, uint64_t *usec, sd_id128_t *boot_id);
+    }
+
+    fn get_journal_realtime(&mut self) {
+        // https://man7.org/linux/man-pages/man3/sd_journal_get_realtime_usec.3.html
+        let mut usec: u64 = 0;
+        ffi_invoke_and_expect!(journal_c::sd_journal_get_realtime_usec(
+            self.journal_handle,
+            &mut usec,
+        ));
     }
 
     fn obtain_journal_data(&mut self) {
@@ -98,6 +113,8 @@ impl Journal {
             }
         }
     }
+
+    fn obtain_journal_timestamp(&mut self) {}
 }
 
 #[test]
@@ -105,5 +122,3 @@ fn test_journal_new() {
     // Test should simply not panic
     let _j: Journal = Journal::new();
 }
-
-//SYSLOG_IDENTIFIER=kernel
