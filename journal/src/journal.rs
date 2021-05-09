@@ -1,20 +1,23 @@
-use crate::log_format;
 use crate::sys::journal as journal_c;
+use chrono::{NaiveDateTime};
 use libc::{c_void, size_t};
 use std::collections::HashMap;
 use std::ffi::CStr;
 
-const JOURNAL_TIME_KEY: &'static str = "JOURNAL_ENTRY_TIMESTAMP";
-
-// 1 TODO how to format data, journalctl offers some sort of fmt
-
-// https://github.com/systemd/systemd/blob/master/src/journal/journalctl.c
-
-// What here needs to be mutable and what doesn't
+enum TimestampType {
+    None,
+    Real,
+    Mono
+}
 
 pub struct Journal {
+    // NOTE: Function invoking sd_journal in non-const context are mut.
+    // This is because we are using a C FFI.
+    // In this C FFI the sd_journal pointer below may be mutated in the C function call.
+    // As such it's best practice, since rust can't track memory in FFI calls,
+    // to label this as mut and all function calls as mutable.
     journal_handle: *mut journal_c::sd_journal,
-    journal_entries: HashMap<String, String>,
+    timestamp: TimestampType 
 }
 
 impl Drop for Journal {
@@ -36,28 +39,23 @@ impl Journal {
 
         Journal {
             journal_handle: handle,
-            journal_entries: HashMap::new(),
+            timestamp: TimestampType::Real
         }
     }
 
     // TODO: Make this async so that when we reach the end we wait via sd_journal_wait()
     // https://man7.org/linux/man-pages/man3/sd_journal_wait.3.html
-    pub fn read(&mut self) -> Option<String> {
-        self.journal_entries.clear();
-        match self.advance() {
-            Some(_) => return Some(log_format::default_fmt(&self.journal_entries)),
-            _ => return None,
-        }
+    pub fn read(&mut self) -> Option<HashMap<String, String>> {
+        self.advance()
     }
 
-    fn advance(&mut self) -> Option<()> {
+    fn advance(&mut self) -> Option<HashMap<String, String>> {
         // https://www.man7.org/linux/man-pages/man3/sd_journal_next.3.html
         // According to the man pages if we have reached the end we will return 0 otherwise 1 will be returned.
         let inc = ffi_invoke_and_expect!(journal_c::sd_journal_next(self.journal_handle));
 
         if inc == 1 {
-            self.obtain_journal_data();
-            return Some(());
+            return Some(self.obtain_journal_data());
         }
 
         None
@@ -76,11 +74,14 @@ impl Journal {
             self.journal_handle,
             &mut usec,
         ));
+        let ts = NaiveDateTime::from_timestamp(usec, 0);
     }
 
-    fn obtain_journal_data(&mut self) {
+    fn obtain_journal_data(&mut self) -> HashMap<String, String> {
         let mut data_ptr = std::ptr::null_mut() as *mut c_void;
         let mut len: size_t = 0;
+
+        let mut journal_entries: HashMap<String, String> = HashMap::new();
 
         unsafe {
             // https://man7.org/linux/man-pages/man3/sd_journal_restart_data.3.html
@@ -105,8 +106,7 @@ impl Journal {
             match journal_message.find('=') {
                 Some(idx) => {
                     let (key, msg) = journal_message.split_at(idx);
-                    self.journal_entries
-                        .insert(key.to_string(), msg.to_string());
+                    journal_entries.insert(key.to_string(), msg[1..].to_string());
                 }
                 _ => {}
             }
@@ -115,9 +115,19 @@ impl Journal {
                 break;
             }
         }
+
+        self.obtain_journal_timestamp(&journal_entries);
+
+        journal_entries
     }
 
-    fn obtain_journal_timestamp(&mut self) {}
+    fn obtain_journal_timestamp(&mut self, mut journal_entries: &HashMap<String, String>) {
+        match self.timestamp {
+            TimestampType::Real => self.fill_journal_realtime(&journal_entries),
+            TimestampType::Mono => self.fill_journal_monotonic(&journal_entries),
+            _ => {}
+        }
+    }
 }
 
 #[test]

@@ -20,10 +20,10 @@ pub fn check_c_error_code(result: i32) -> Result<i32, CError> {
         c_str.to_str().unwrap().to_owned()
     };
 
-    return Err(CError {
+    Err(CError {
         message: error_message,
         error_code: error_code,
-    });
+    })
 }
 
 macro_rules! ffi_invoke_and_expect {

@@ -23,9 +23,9 @@ fn test_journal_read() {
     // Eventually this test can be, I submit a message to the
     // daemon and attempt to read it back.
     let mut j: Journal = Journal::new();
-    for i in 0..1000 {
+    for _ in 0..10 {
         match j.read() {
-            Some(x) => println!("{}", x),
+            Some(map) => println!("{:#?}", map),
             _ => {}
         }
     }
