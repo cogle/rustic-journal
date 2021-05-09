@@ -28,4 +28,5 @@ extern "C" {
     pub fn sd_journal_next(j: *mut sd_journal) -> c_int;
     pub fn sd_journal_open(ret: *mut *mut sd_journal, flags: c_int) -> c_int;
     pub fn sd_journal_restart_data(j: *mut sd_journal);
+    pub fn sd_journal_get_realtime_usec(j: *mut sd_journal, usec: *mut u64) -> c_int;
 }

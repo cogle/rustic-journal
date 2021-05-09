@@ -10,6 +10,8 @@ const JOURNAL_TIME_KEY: &'static str = "JOURNAL_ENTRY_TIMESTAMP";
 
 // https://github.com/systemd/systemd/blob/master/src/journal/journalctl.c
 
+// What here needs to be mutable and what doesn't
+
 pub struct Journal {
     journal_handle: *mut journal_c::sd_journal,
     journal_entries: HashMap<String, String>,
@@ -99,13 +101,14 @@ impl Journal {
                 let c_str: &CStr = CStr::from_ptr(data_ptr as *const _);
                 c_str.to_str().unwrap()
             };
-            let mut split_iter = journal_message[..len].splitn(2, '=');
 
-            if let Some(key) = split_iter.next() {
-                if let Some(msg) = split_iter.next() {
+            match journal_message.find('=') {
+                Some(idx) => {
+                    let (key, msg) = journal_message.split_at(idx);
                     self.journal_entries
                         .insert(key.to_string(), msg.to_string());
                 }
+                _ => {}
             }
 
             if remaining == 0 {
