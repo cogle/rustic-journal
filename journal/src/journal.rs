@@ -1,13 +1,14 @@
 use crate::sys::journal as journal_c;
-use chrono::{NaiveDateTime};
+use chrono::NaiveDateTime;
 use libc::{c_void, size_t};
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::ffi::CStr;
 
 enum TimestampType {
     None,
     Real,
-    Mono
+    Mono,
 }
 
 pub struct Journal {
@@ -17,7 +18,7 @@ pub struct Journal {
     // As such it's best practice, since rust can't track memory in FFI calls,
     // to label this as mut and all function calls as mutable.
     journal_handle: *mut journal_c::sd_journal,
-    timestamp: TimestampType 
+    timestamp: TimestampType,
 }
 
 impl Drop for Journal {
@@ -39,7 +40,7 @@ impl Journal {
 
         Journal {
             journal_handle: handle,
-            timestamp: TimestampType::Real
+            timestamp: TimestampType::Real,
         }
     }
 
@@ -61,20 +62,30 @@ impl Journal {
         None
     }
 
-    fn get_journal_monotonic(&mut self) {
-        // TODO currently this is a null pointer for the last arg but should be of type sd_id128_t
+    fn get_journal_monotonic(&mut self) -> u64 {
         // https://man7.org/linux/man-pages/man3/sd_journal_get_monotonic_usec.3.html
-        //int sd_journal_get_monotonic_usec(sd_journal *j, uint64_t *usec, sd_id128_t *boot_id);
+        let mut usec: u64 = 0;
+        let mut boot_id = journal_c::sd_id128_t::new();
+
+        ffi_invoke_and_expect!(journal_c::sd_journal_get_monotonic_usec(
+            self.journal_handle,
+            &mut usec,
+            &mut boot_id
+        ));
+
+        usec
     }
 
-    fn get_journal_realtime(&mut self) {
+    fn get_journal_realtime(&mut self) -> NaiveDateTime {
         // https://man7.org/linux/man-pages/man3/sd_journal_get_realtime_usec.3.html
         let mut usec: u64 = 0;
+
         ffi_invoke_and_expect!(journal_c::sd_journal_get_realtime_usec(
             self.journal_handle,
             &mut usec,
         ));
-        let ts = NaiveDateTime::from_timestamp(usec, 0);
+
+        NaiveDateTime::from_timestamp(i64::try_from(usec).unwrap(), 0)
     }
 
     fn obtain_journal_data(&mut self) -> HashMap<String, String> {
@@ -122,10 +133,27 @@ impl Journal {
     }
 
     fn obtain_journal_timestamp(&mut self, mut journal_entries: &HashMap<String, String>) {
+        let mut ts_opt: Option<String> = None;
+        let mut key = "";
+
         match self.timestamp {
-            TimestampType::Real => self.fill_journal_realtime(&journal_entries),
-            TimestampType::Mono => self.fill_journal_monotonic(&journal_entries),
+            TimestampType::Real => {
+                key = journal_c::JOURNAL_REALTIME_TIMESTAMP_KEY;
+
+                let ts = self.get_journal_realtime();
+                // format
+            }
+            TimestampType::Mono => {
+                key = journal_c::JOURNAL_MONOTOMIC_TIMESTAMP_KEY;
+
+                let ts = self.get_journal_monotonic();
+                // format
+            }
             _ => {}
+        }
+
+        if let Some(val) = ts_opt {
+            journal_entries.insert(key.to_string(), val);
         }
     }
 }
