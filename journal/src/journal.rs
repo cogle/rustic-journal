@@ -5,20 +5,28 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ffi::CStr;
 
+#[derive(Debug)]
+enum Timestamp {
+    Mono(u64),
+    Real(chrono::NaiveDateTime),
+}
+
+#[derive(Debug)]
 enum TimestampType {
-    None,
-    Real,
     Mono,
+    Real,
+}
+
+#[derive(Debug)]
+pub struct JournalData {
+    journal_map: HashMap<String, String>,
+    timestamp: Timestamp,
 }
 
 pub struct Journal {
-    // NOTE: Function invoking sd_journal in non-const context are mut.
-    // This is because we are using a C FFI.
-    // In this C FFI the sd_journal pointer below may be mutated in the C function call.
-    // As such it's best practice, since rust can't track memory in FFI calls,
-    // to label this as mut and all function calls as mutable.
+    // NOTE: Function invoking sd_journal in non-const context are mut. This is because we are using a C FFI. In this C FFI the sd_journal pointer below may be mutated in the C function call. As such it's best practice, since rust can't track memory in FFI calls, to label this as mut and all function calls as mutable.
     journal_handle: *mut journal_c::sd_journal,
-    timestamp: TimestampType,
+    timestamp_display: TimestampType,
 }
 
 impl Drop for Journal {
@@ -40,17 +48,17 @@ impl Journal {
 
         Journal {
             journal_handle: handle,
-            timestamp: TimestampType::Real,
+            timestamp_display: TimestampType::Real,
         }
     }
 
     // TODO: Make this async so that when we reach the end we wait via sd_journal_wait()
     // https://man7.org/linux/man-pages/man3/sd_journal_wait.3.html
-    pub fn read(&mut self) -> Option<HashMap<String, String>> {
+    pub fn read(&mut self) -> Option<JournalData> {
         self.advance()
     }
 
-    fn advance(&mut self) -> Option<HashMap<String, String>> {
+    fn advance(&mut self) -> Option<JournalData> {
         // https://www.man7.org/linux/man-pages/man3/sd_journal_next.3.html
         // According to the man pages if we have reached the end we will return 0 otherwise 1 will be returned.
         let inc = ffi_invoke_and_expect!(journal_c::sd_journal_next(self.journal_handle));
@@ -85,10 +93,18 @@ impl Journal {
             &mut usec,
         ));
 
-        NaiveDateTime::from_timestamp(i64::try_from(usec).unwrap(), 0)
+        let usec_str = usec.to_string();
+
+        let sec_str = usec_str[0..&usec_str.len() - 6].to_string();
+        let milli_str = usec_str[&usec_str.len() - 6..].to_string();
+
+        NaiveDateTime::from_timestamp(
+            sec_str.parse::<i64>().unwrap(),
+            milli_str.parse::<u32>().unwrap(),
+        )
     }
 
-    fn obtain_journal_data(&mut self) -> HashMap<String, String> {
+    fn obtain_journal_data(&mut self) -> JournalData {
         let mut data_ptr = std::ptr::null_mut() as *mut c_void;
         let mut len: size_t = 0;
 
@@ -127,33 +143,20 @@ impl Journal {
             }
         }
 
-        self.obtain_journal_timestamp(&journal_entries);
-
-        journal_entries
+        JournalData {
+            journal_map: journal_entries,
+            timestamp: self.obtain_journal_timestamp(),
+        }
     }
 
-    fn obtain_journal_timestamp(&mut self, mut journal_entries: &HashMap<String, String>) {
-        let mut ts_opt: Option<String> = None;
-        let mut key = "";
-
-        match self.timestamp {
+    fn obtain_journal_timestamp(&mut self) -> Timestamp {
+        match self.timestamp_display {
             TimestampType::Real => {
-                key = journal_c::JOURNAL_REALTIME_TIMESTAMP_KEY;
-
-                let ts = self.get_journal_realtime();
-                // format
+                return Timestamp::Real(self.get_journal_realtime());
             }
             TimestampType::Mono => {
-                key = journal_c::JOURNAL_MONOTOMIC_TIMESTAMP_KEY;
-
-                let ts = self.get_journal_monotonic();
-                // format
+                return Timestamp::Mono(self.get_journal_monotonic());
             }
-            _ => {}
-        }
-
-        if let Some(val) = ts_opt {
-            journal_entries.insert(key.to_string(), val);
         }
     }
 }
