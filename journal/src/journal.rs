@@ -24,7 +24,9 @@ pub struct JournalData {
 }
 
 pub struct Journal {
-    // NOTE: Function invoking sd_journal in non-const context are mut. This is because we are using a C FFI. In this C FFI the sd_journal pointer below may be mutated in the C function call. As such it's best practice, since rust can't track memory in FFI calls, to label this as mut and all function calls as mutable.
+    // NOTE: Function invoking sd_journal in non-const context are mut. This is because we are using a C FFI. In this C
+    // FFI the sd_journal pointer below may be mutated in the C function call. As such it's best practice, since rust
+    // can't track memory in FFI calls, need to label this as mut and all function calls as mutable.
     journal_handle: *mut journal_c::sd_journal,
     timestamp_display: TimestampType,
 }
@@ -60,7 +62,8 @@ impl Journal {
 
     fn advance(&mut self) -> Option<JournalData> {
         // https://www.man7.org/linux/man-pages/man3/sd_journal_next.3.html
-        // According to the man pages if we have reached the end we will return 0 otherwise 1 will be returned.
+        // According to the man pages if we have reached the end we will return 0 otherwise 1 will be
+        // returned.
         let inc = ffi_invoke_and_expect!(journal_c::sd_journal_next(self.journal_handle));
 
         if inc == 1 {
@@ -88,23 +91,18 @@ impl Journal {
         // https://man7.org/linux/man-pages/man3/sd_journal_get_realtime_usec.3.html
         let mut usec: u64 = 0;
 
-        ffi_invoke_and_expect!(journal_c::sd_journal_get_realtime_usec(
-            self.journal_handle,
-            &mut usec,
-        ));
+        ffi_invoke_and_expect!(journal_c::sd_journal_get_realtime_usec(self.journal_handle, &mut usec,));
 
         let usec_str = usec.to_string();
 
         let sec_str = usec_str[0..&usec_str.len() - 6].to_string();
         let milli_str = usec_str[&usec_str.len() - 6..].to_string();
 
-        NaiveDateTime::from_timestamp(
-            sec_str.parse::<i64>().unwrap(),
-            milli_str.parse::<u32>().unwrap(),
-        )
+        NaiveDateTime::from_timestamp(sec_str.parse::<i64>().unwrap(), milli_str.parse::<u32>().unwrap())
     }
 
     fn obtain_journal_data(&mut self) -> JournalData {
+        // NOTE: Marked mut because this goes into the C func and its unknown as to what may go on there.
         let mut data_ptr = std::ptr::null_mut() as *mut c_void;
         let mut len: size_t = 0;
 
