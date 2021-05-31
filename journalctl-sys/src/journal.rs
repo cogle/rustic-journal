@@ -15,10 +15,11 @@ pub const JOURNAL_REALTIME_TIMESTAMP_KEY: &'static str = "_SOURCE_REALTIME_TIMES
 pub const JOURNAL_MONOTOMIC_TIMESTAMP_KEY: &'static str = "_SOURCE_MONOTOMIC_TIMESTAMP";
 
 // Opaque Struct Documentation reference here
-// https://doc.rust-lang.org/1.30.0/book/first-edition/ffi.html#representing-opaque-structs
+// https://doc.rust-lang.org/nomicon/ffi.html#representing-opaque-structs
 #[repr(C)]
 pub struct sd_journal {
-    private: [u8; 0],
+    _data: [u8; 0],
+    _marker: core::marker::PhantomData<(*mut u8, core::marker::PhantomPinned)>,
 }
 
 // union sd_id128 {

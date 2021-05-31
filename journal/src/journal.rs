@@ -24,9 +24,9 @@ pub struct JournalData {
 }
 
 pub struct Journal {
-    // NOTE: Function invoking sd_journal in non-const context are mut. This is because we are using a C FFI. In this C
-    // FFI the sd_journal pointer below may be mutated in the C function call. As such it's best practice, since rust
-    // can't track memory in FFI calls, need to label this as mut and all function calls as mutable.
+    // NOTE: We are using a C FFI, in this C FFI the sd_journal pointer below may be mutated in the C function
+    // call. As such it's best practice, since rust can't track memory in FFI calls, to label this as mut and all
+    // function calls that require journal_handle as mutable.
     journal_handle: *mut journal_c::sd_journal,
     timestamp_display: TimestampType,
 }
