@@ -4,7 +4,7 @@ use libc::{c_void, size_t};
 use std::collections::HashMap;
 use std::ffi::CStr;
 
-pub const DEFAULT_REAL_TIME_FORMAT: &str = "%d-%m-%Y %H:%M:%S%.6f%:z";
+pub const DEFAULT_REALTIME_FORMAT: &str = "%d-%m-%Y %H:%M:%S%.6f%:z";
 
 #[derive(Debug)]
 pub enum Timestamp<'a> {
