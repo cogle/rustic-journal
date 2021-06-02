@@ -4,7 +4,7 @@ use libc::{c_void, size_t};
 use std::collections::HashMap;
 use std::ffi::CStr;
 
-pub const DEFAULT_REAL_TIME_FORMAT: &str = "%d %m %Y %H:%M:%S%.6f%:z";
+pub const DEFAULT_REAL_TIME_FORMAT: &str = "%d-%m-%Y %H:%M:%S%.6f%:z";
 
 #[derive(Debug)]
 pub enum Timestamp<'a> {
@@ -139,15 +139,15 @@ impl<'a> Journal<'a> {
             }
         }
 
-        let timestamp = self.obtain_journal_timestamp();
-        journal_entries.insert("TIMESTAMP".to_string(), timestamp);
+        let (key, timestamp) = self.obtain_journal_timestamp();
+        journal_entries.insert(key, timestamp);
 
         JournalData {
             journal_map: journal_entries,
         }
     }
 
-    fn obtain_journal_timestamp(&mut self) -> String {
+    fn obtain_journal_timestamp(&mut self) -> (String, String) {
         match self.timestamp_display {
             Timestamp::Real(fmt_str) => {
                 // This gets the naive datetime
@@ -156,11 +156,17 @@ impl<'a> Journal<'a> {
                 // for the client or consumer at a later stage to convert to local time without all the additional
                 // information as such the local time stamp conversion is done here.
                 let converted: DateTime<Local> = DateTime::from(DateTime::<Utc>::from_utc(naive_ts, Utc));
-                return converted.format(fmt_str).to_string();
+                return (
+                    journal_c::JOURNAL_REALTIME_TIMESTAMP_KEY.to_string(),
+                    converted.format(fmt_str).to_string(),
+                );
             }
             Timestamp::Mono(fmt_str) => {
                 // return Timestamp::Mono(self.get_journal_monotonic());
-                return fmt_str.to_string();
+                return (
+                    journal_c::JOURNAL_MONOTOMIC_TIMESTAMP_KEY.to_string(),
+                    fmt_str.to_string(),
+                );
             }
         }
     }
