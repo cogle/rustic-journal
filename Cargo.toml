@@ -1,9 +1,11 @@
 [package]
-name = "rustic_journal"
+name = "rustic-journal"
 version = "0.1.0"
 authors = ["cogle <thecogle@gmail.com>"]
 edition = "2018"
 description = "A sever/client utility to hook into journalctl"
+keywords = ["journalctl", "logging"]
+repository = "https://github.com/cogle/rustic-journal"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

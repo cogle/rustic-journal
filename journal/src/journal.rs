@@ -1,37 +1,31 @@
 use crate::sys::journal as journal_c;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use libc::{c_void, size_t};
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::ffi::CStr;
 
-#[derive(Debug)]
-enum Timestamp {
-    Mono(u64),
-    Real(chrono::NaiveDateTime),
-}
+pub const DEFAULT_REAL_TIME_FORMAT: &str = "%d %m %Y %H:%M:%S%.6f%:z";
 
 #[derive(Debug)]
-enum TimestampType {
-    Mono,
-    Real,
+pub enum Timestamp<'a> {
+    Mono(&'a str),
+    Real(&'a str),
 }
 
 #[derive(Debug)]
 pub struct JournalData {
     journal_map: HashMap<String, String>,
-    timestamp: Timestamp,
 }
 
-pub struct Journal {
+pub struct Journal<'a> {
     // NOTE: We are using a C FFI, in this C FFI the sd_journal pointer below may be mutated in the C function
     // call. As such it's best practice, since rust can't track memory in FFI calls, to label this as mut and all
     // function calls that require journal_handle as mutable.
     journal_handle: *mut journal_c::sd_journal,
-    timestamp_display: TimestampType,
+    timestamp_display: Timestamp<'a>,
 }
 
-impl Drop for Journal {
+impl<'a> Drop for Journal<'a> {
     fn drop(&mut self) {
         unsafe {
             journal_c::sd_journal_close(self.journal_handle);
@@ -39,8 +33,8 @@ impl Drop for Journal {
     }
 }
 
-impl Journal {
-    pub fn new() -> Journal {
+impl<'a> Journal<'a> {
+    pub fn new(timestamp: Timestamp<'a>) -> Journal<'a> {
         let mut handle = std::ptr::null_mut() as *mut journal_c::sd_journal;
 
         ffi_invoke_and_expect!(journal_c::sd_journal_open(
@@ -50,7 +44,7 @@ impl Journal {
 
         Journal {
             journal_handle: handle,
-            timestamp_display: TimestampType::Real,
+            timestamp_display: timestamp,
         }
     }
 
@@ -98,7 +92,11 @@ impl Journal {
         let sec_str = usec_str[0..&usec_str.len() - 6].to_string();
         let milli_str = usec_str[&usec_str.len() - 6..].to_string();
 
-        NaiveDateTime::from_timestamp(sec_str.parse::<i64>().unwrap(), milli_str.parse::<u32>().unwrap())
+        // Multiply by 1000 to convert milliseconds to nanoseconds
+        NaiveDateTime::from_timestamp(
+            sec_str.parse::<i64>().unwrap(),
+            milli_str.parse::<u32>().unwrap() * 1000,
+        )
     }
 
     fn obtain_journal_data(&mut self) -> JournalData {
@@ -141,19 +139,28 @@ impl Journal {
             }
         }
 
+        let timestamp = self.obtain_journal_timestamp();
+        journal_entries.insert("TIMESTAMP".to_string(), timestamp);
+
         JournalData {
             journal_map: journal_entries,
-            timestamp: self.obtain_journal_timestamp(),
         }
     }
 
-    fn obtain_journal_timestamp(&mut self) -> Timestamp {
+    fn obtain_journal_timestamp(&mut self) -> String {
         match self.timestamp_display {
-            TimestampType::Real => {
-                return Timestamp::Real(self.get_journal_realtime());
+            Timestamp::Real(fmt_str) => {
+                // This gets the naive datetime
+                let naive_ts = self.get_journal_realtime();
+                // Convert here to local time. If wanted the client can convert to UTC; however, it is much harder
+                // for the client or consumer at a later stage to convert to local time without all the additional
+                // information as such the local time stamp conversion is done here.
+                let converted: DateTime<Local> = DateTime::from(DateTime::<Utc>::from_utc(naive_ts, Utc));
+                return converted.format(fmt_str).to_string();
             }
-            TimestampType::Mono => {
-                return Timestamp::Mono(self.get_journal_monotonic());
+            Timestamp::Mono(fmt_str) => {
+                // return Timestamp::Mono(self.get_journal_monotonic());
+                return fmt_str.to_string();
             }
         }
     }
@@ -162,5 +169,6 @@ impl Journal {
 #[test]
 fn test_journal_new() {
     // Test should simply not panic
-    let _j: Journal = Journal::new();
+    let timestamp = Timestamp::Real(DEFAULT_REAL_TIME_FORMAT);
+    let _j: Journal = Journal::new(timestamp);
 }

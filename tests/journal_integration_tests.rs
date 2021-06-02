@@ -1,10 +1,10 @@
-use journal::Journal;
+use journal::{Journal, Timestamp, DEFAULT_REAL_TIME_FORMAT};
 
-#[test]
-fn test_journal_new() {
-    // Test should simply not panic
-    let _j: Journal = Journal::new();
-}
+//#[test]
+// fn test_journal_new() {
+// Test should simply not panic
+// let _j: Journal = Journal::new();
+//}
 
 //#[test]
 // fn test_journal_advance() {
@@ -22,7 +22,9 @@ fn test_journal_new() {
 fn test_journal_read() {
     // Eventually this test can be, I submit a message to the
     // daemon and attempt to read it back.
-    let mut j: Journal = Journal::new();
+    let timestamp = Timestamp::Real(DEFAULT_REAL_TIME_FORMAT);
+
+    let mut j: Journal = Journal::new(timestamp);
     for _ in 0..10 {
         match j.read() {
             Some(map) => println!("{:#?}", map),
