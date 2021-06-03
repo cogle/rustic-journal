@@ -8,7 +8,7 @@ pub const DEFAULT_REALTIME_FORMAT: &str = "%d-%m-%Y %H:%M:%S%.6f%:z";
 
 #[derive(Debug)]
 pub enum Timestamp<'a> {
-    Mono(&'a str),
+    Mono,
     Real(&'a str),
 }
 
@@ -31,6 +31,13 @@ impl<'a> Drop for Journal<'a> {
             journal_c::sd_journal_close(self.journal_handle);
         }
     }
+}
+
+fn split_usec_string(usec_string: &String) -> (&str, &str) {
+    let sec_str = &usec_string[0..&usec_string.len() - 6];
+    let milli_str = &usec_string[&usec_string.len() - 6..];
+
+    (sec_str, milli_str)
 }
 
 impl<'a> Journal<'a> {
@@ -81,22 +88,13 @@ impl<'a> Journal<'a> {
         usec
     }
 
-    fn get_journal_realtime(&mut self) -> NaiveDateTime {
+    fn get_journal_realtime(&mut self) -> u64 {
         // https://man7.org/linux/man-pages/man3/sd_journal_get_realtime_usec.3.html
         let mut usec: u64 = 0;
 
-        ffi_invoke_and_expect!(journal_c::sd_journal_get_realtime_usec(self.journal_handle, &mut usec,));
+        ffi_invoke_and_expect!(journal_c::sd_journal_get_realtime_usec(self.journal_handle, &mut usec));
 
-        let usec_str = usec.to_string();
-
-        let sec_str = usec_str[0..&usec_str.len() - 6].to_string();
-        let milli_str = usec_str[&usec_str.len() - 6..].to_string();
-
-        // Multiply by 1000 to convert milliseconds to nanoseconds
-        NaiveDateTime::from_timestamp(
-            sec_str.parse::<i64>().unwrap(),
-            milli_str.parse::<u32>().unwrap() * 1000,
-        )
+        usec
     }
 
     fn obtain_journal_data(&mut self) -> JournalData {
@@ -139,33 +137,73 @@ impl<'a> Journal<'a> {
             }
         }
 
-        let (key, timestamp) = self.obtain_journal_timestamp();
-        journal_entries.insert(key, timestamp);
+        self.obtain_journal_timestamp(&mut journal_entries);
 
         JournalData {
             journal_map: journal_entries,
         }
     }
 
-    fn obtain_journal_timestamp(&mut self) -> (String, String) {
+    fn format_realtime(&self, timestamp_usec: u64, format_str: &str) -> String {
+        let usec_string = timestamp_usec.to_string();
+        let (sec_str, micro_str) = split_usec_string(&usec_string);
+
+        // Multiply by 1000 to convert microseconds to nanoseconds
+        let ndt = NaiveDateTime::from_timestamp(
+            sec_str.parse::<i64>().unwrap(),
+            micro_str.parse::<u32>().unwrap() * 1000,
+        );
+
+        // Convert here to local time. If wanted the client can convert to UTC; however, it is much harder
+        // for the client or consumer at a later stage to convert to local time without all the additional
+        // information as such the local time stamp conversion is done here.
+        let ldt: DateTime<Local> = DateTime::from(DateTime::<Utc>::from_utc(ndt, Utc));
+
+        ldt.format(format_str).to_string()
+    }
+
+    fn format_monotomic(&self, timestamp_usec: u64) -> String {
+        // According to the source for:
+        // output_timestamp_monotonic(FILE *f, sd_journal *j, const char *monotonic) the default of this
+        // value will be 11 characters long as such its padded to 11 so that the split below works
+        // as expected and doesn't panic.
+        let usec_string = format!("{:0>11}", timestamp_usec.to_string());
+        let (sec_str, micro_str) = split_usec_string(&usec_string);
+
+        format!("{:>5}.{:0>6}", sec_str, micro_str)
+    }
+
+    fn obtain_journal_timestamp(&mut self, journal_entries: &mut HashMap<String, String>) {
         match self.timestamp_display {
-            Timestamp::Real(fmt_str) => {
+            Timestamp::Real(fmt_str) if !journal_entries.contains_key(journal_c::JOURNAL_REALTIME_TIMESTAMP_KEY) => {
                 // This gets the naive datetime
-                let naive_ts = self.get_journal_realtime();
-                // Convert here to local time. If wanted the client can convert to UTC; however, it is much harder
-                // for the client or consumer at a later stage to convert to local time without all the additional
-                // information as such the local time stamp conversion is done here.
-                let converted: DateTime<Local> = DateTime::from(DateTime::<Utc>::from_utc(naive_ts, Utc));
-                return (
+                let naive_ts_usec = self.get_journal_realtime();
+                journal_entries.insert(
                     journal_c::JOURNAL_REALTIME_TIMESTAMP_KEY.to_string(),
-                    converted.format(fmt_str).to_string(),
+                    self.format_realtime(naive_ts_usec, fmt_str),
                 );
             }
-            Timestamp::Mono(fmt_str) => {
-                // return Timestamp::Mono(self.get_journal_monotonic());
-                return (
-                    journal_c::JOURNAL_MONOTOMIC_TIMESTAMP_KEY.to_string(),
-                    fmt_str.to_string(),
+            Timestamp::Mono if !journal_entries.contains_key(journal_c::JOURNAL_MONOTONIC_TIMESTAMP_KEY) => {
+                // This get the journal time
+                let usec_ts = self.get_journal_monotonic();
+                journal_entries.insert(
+                    journal_c::JOURNAL_MONOTONIC_TIMESTAMP_KEY.to_string(),
+                    self.format_monotomic(usec_ts),
+                );
+            }
+            Timestamp::Real(_fmt_str) => {
+                // TODO I really got no idea what todo here
+            }
+            Timestamp::Mono => {
+                // In the case that the timestamp is already provided use and format that.
+                let usec_ts: u64 = journal_entries
+                    .get(journal_c::JOURNAL_MONOTONIC_TIMESTAMP_KEY)
+                    .unwrap()
+                    .parse()
+                    .unwrap();
+                journal_entries.insert(
+                    journal_c::JOURNAL_MONOTONIC_TIMESTAMP_KEY.to_string(),
+                    self.format_monotomic(usec_ts),
                 );
             }
         }
@@ -175,6 +213,6 @@ impl<'a> Journal<'a> {
 #[test]
 fn test_journal_new() {
     // Test should simply not panic
-    let timestamp = Timestamp::Real(DEFAULT_REAL_TIME_FORMAT);
+    let timestamp = Timestamp::Real(DEFAULT_REALTIME_FORMAT);
     let _j: Journal = Journal::new(timestamp);
 }

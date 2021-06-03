@@ -12,7 +12,7 @@ pub const SD_JOURNAL_ALL_NAMESPACES: c_int = 1 << 5;
 pub const SD_JOURNAL_INCLUDE_DEFAULT_NAMESPACE: c_int = 1 << 6;
 
 pub const JOURNAL_REALTIME_TIMESTAMP_KEY: &'static str = "_SOURCE_REALTIME_TIMESTAMP";
-pub const JOURNAL_MONOTOMIC_TIMESTAMP_KEY: &'static str = "_SOURCE_MONOTOMIC_TIMESTAMP";
+pub const JOURNAL_MONOTONIC_TIMESTAMP_KEY: &'static str = "_SOURCE_MONOTONIC_TIMESTAMP";
 
 // Opaque Struct Documentation reference here
 // https://doc.rust-lang.org/nomicon/ffi.html#representing-opaque-structs
@@ -32,7 +32,7 @@ pub struct sd_id128_t {
     padding: [u8; 16],
 }
 
-// Simply for convience
+// Simply for convenience
 impl sd_id128_t {
     pub fn new() -> sd_id128_t {
         sd_id128_t { padding: [0; 16] }

@@ -22,10 +22,11 @@ use journal::{Journal, Timestamp, DEFAULT_REALTIME_FORMAT};
 fn test_journal_read() {
     // Eventually this test can be, I submit a message to the
     // daemon and attempt to read it back.
-    let timestamp = Timestamp::Real(DEFAULT_REALTIME_FORMAT);
+    // let timestamp = Timestamp::Real(DEFAULT_REALTIME_FORMAT);
+    let timestamp = Timestamp::Mono;
 
     let mut j: Journal = Journal::new(timestamp);
-    for _ in 0..10 {
+    for _ in 0..100 {
         match j.read() {
             Some(map) => println!("{:#?}", map),
             _ => {}
