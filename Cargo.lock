@@ -48,6 +48,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "journal-server"
+version = "0.1.0"
+
+[[package]]
 name = "journalctl-sys"
 version = "0.1.0"
 dependencies = [
@@ -103,6 +107,7 @@ name = "rustic-journal"
 version = "0.1.0"
 dependencies = [
  "journal",
+ "journal-server",
 ]
 
 [[package]]

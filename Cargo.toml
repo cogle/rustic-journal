@@ -11,10 +11,12 @@ repository = "https://github.com/cogle/rustic-journal"
 
 [workspace]
 members = [
-    "journal"
+    "journal",
+    "journal-server",
 ]
 
 
 [dependencies]
 journal = {path = "./journal"}
+journal-server = {path = "./journal-server"}
 
