@@ -1,6 +1,7 @@
 use crate::sys::journal as journal_c;
 use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use libc::{c_void, size_t};
+use std::cmp;
 use std::collections::HashMap;
 use std::ffi::CStr;
 
@@ -34,10 +35,14 @@ impl<'a> Drop for Journal<'a> {
 }
 
 fn split_usec_string(usec_string: &String) -> (&str, &str) {
-    let sec_str = &usec_string[0..&usec_string.len() - 6];
-    let milli_str = &usec_string[&usec_string.len() - 6..];
+    if usec_string.len() > 6 {
+        let sec_str = &usec_string[0..std::cmp::max(0, &usec_string.len() - 6)];
+        let milli_str = &usec_string[std::cmp::max(&usec_string.len() - 6, 0)..];
 
-    (sec_str, milli_str)
+        return (sec_str, milli_str);
+    } else {
+        return ("0", &usec_string[..]);
+    }
 }
 
 impl<'a> Journal<'a> {
@@ -121,7 +126,9 @@ impl<'a> Journal<'a> {
 
             let journal_message = unsafe {
                 let c_str: &CStr = CStr::from_ptr(data_ptr as *const _);
-                c_str.to_str().unwrap()
+                // [..len] Ensures we only copy back the valid portion of the string as reported by the enumerate
+                // function
+                c_str.to_str().unwrap()[..len].to_string()
             };
 
             match journal_message.find('=') {
@@ -163,11 +170,7 @@ impl<'a> Journal<'a> {
     }
 
     fn format_monotomic(&self, timestamp_usec: u64) -> String {
-        // According to the source for:
-        // output_timestamp_monotonic(FILE *f, sd_journal *j, const char *monotonic) the default of this
-        // value will be 11 characters long as such its padded to 11 so that the split below works
-        // as expected and doesn't panic.
-        let usec_string = format!("{:0>11}", timestamp_usec.to_string());
+        let usec_string = timestamp_usec.to_string();
         let (sec_str, micro_str) = split_usec_string(&usec_string);
 
         format!("{:>5}.{:0>6}", sec_str, micro_str)
