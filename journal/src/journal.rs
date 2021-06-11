@@ -18,6 +18,7 @@ pub struct JournalData {
     journal_map: HashMap<String, String>,
 }
 
+// FFI API wrapper around systemd journal commands.
 pub struct Journal<'a> {
     // NOTE: We are using a C FFI, in this C FFI the sd_journal pointer below may be mutated in the C function
     // call. As such it's best practice, since rust can't track memory in FFI calls, to label this as mut and all
