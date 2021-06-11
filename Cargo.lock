@@ -71,7 +71,6 @@ dependencies = [
 name = "journal"
 version = "0.1.0"
 dependencies = [
- "chrono",
  "journalctl-sys",
  "libc",
  "nix",
@@ -81,6 +80,7 @@ dependencies = [
 name = "journal-server"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "journal",
  "tokio",
 ]

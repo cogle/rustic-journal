@@ -1,17 +1,8 @@
 use crate::sys::journal as journal_c;
-use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use libc::{c_void, size_t};
 use std::cmp;
 use std::collections::HashMap;
 use std::ffi::CStr;
-
-pub const DEFAULT_REALTIME_FORMAT: &str = "%d-%m-%Y %H:%M:%S%.6f%:z";
-
-#[derive(Debug)]
-pub enum Timestamp<'a> {
-    Mono,
-    Real(&'a str),
-}
 
 #[derive(Debug)]
 pub struct JournalData {
@@ -19,15 +10,14 @@ pub struct JournalData {
 }
 
 // FFI API wrapper around systemd journal commands.
-pub struct Journal<'a> {
+pub struct Journal {
     // NOTE: We are using a C FFI, in this C FFI the sd_journal pointer below may be mutated in the C function
     // call. As such it's best practice, since rust can't track memory in FFI calls, to label this as mut and all
     // function calls that require journal_handle as mutable.
     journal_handle: *mut journal_c::sd_journal,
-    timestamp_display: Timestamp<'a>,
 }
 
-impl<'a> Drop for Journal<'a> {
+impl Drop for Journal {
     fn drop(&mut self) {
         unsafe {
             journal_c::sd_journal_close(self.journal_handle);
@@ -46,8 +36,8 @@ fn split_usec_string(usec_string: &String) -> (&str, &str) {
     }
 }
 
-impl<'a> Journal<'a> {
-    pub fn new(timestamp: Timestamp<'a>) -> Journal<'a> {
+impl Journal {
+    pub fn new() -> Journal {
         let mut handle = std::ptr::null_mut() as *mut journal_c::sd_journal;
 
         ffi_invoke_and_expect!(journal_c::sd_journal_open(
@@ -55,10 +45,7 @@ impl<'a> Journal<'a> {
             journal_c::SD_JOURNAL_LOCAL_ONLY
         ));
 
-        Journal {
-            journal_handle: handle,
-            timestamp_display: timestamp,
-        }
+        Journal { journal_handle: handle }
     }
 
     // TODO: Make this async so that when we reach the end we wait via sd_journal_wait()
@@ -67,20 +54,7 @@ impl<'a> Journal<'a> {
         self.advance()
     }
 
-    fn advance(&mut self) -> Option<JournalData> {
-        // https://www.man7.org/linux/man-pages/man3/sd_journal_next.3.html
-        // According to the man pages if we have reached the end we will return 0 otherwise 1 will be
-        // returned.
-        let inc = ffi_invoke_and_expect!(journal_c::sd_journal_next(self.journal_handle));
-
-        if inc == 1 {
-            return Some(self.obtain_journal_data());
-        }
-
-        None
-    }
-
-    fn get_journal_monotonic(&mut self) -> u64 {
+    pub fn get_journal_monotonic(&mut self) -> u64 {
         // https://man7.org/linux/man-pages/man3/sd_journal_get_monotonic_usec.3.html
         let mut usec: u64 = 0;
         let mut boot_id = journal_c::sd_id128_t::new();
@@ -94,13 +68,26 @@ impl<'a> Journal<'a> {
         usec
     }
 
-    fn get_journal_realtime(&mut self) -> u64 {
+    pub fn get_journal_realtime(&mut self) -> u64 {
         // https://man7.org/linux/man-pages/man3/sd_journal_get_realtime_usec.3.html
         let mut usec: u64 = 0;
 
         ffi_invoke_and_expect!(journal_c::sd_journal_get_realtime_usec(self.journal_handle, &mut usec));
 
         usec
+    }
+
+    fn advance(&mut self) -> Option<JournalData> {
+        // https://www.man7.org/linux/man-pages/man3/sd_journal_next.3.html
+        // According to the man pages if we have reached the end we will return 0 otherwise 1 will be
+        // returned.
+        let inc = ffi_invoke_and_expect!(journal_c::sd_journal_next(self.journal_handle));
+
+        if inc == 1 {
+            return Some(self.obtain_journal_data());
+        }
+
+        None
     }
 
     fn obtain_journal_data(&mut self) -> JournalData {
@@ -145,71 +132,8 @@ impl<'a> Journal<'a> {
             }
         }
 
-        self.obtain_journal_timestamp(&mut journal_entries);
-
         JournalData {
             journal_map: journal_entries,
-        }
-    }
-
-    fn format_realtime(&self, timestamp_usec: u64, format_str: &str) -> String {
-        let usec_string = timestamp_usec.to_string();
-        let (sec_str, micro_str) = split_usec_string(&usec_string);
-
-        // Multiply by 1000 to convert microseconds to nanoseconds
-        let ndt = NaiveDateTime::from_timestamp(
-            sec_str.parse::<i64>().unwrap(),
-            micro_str.parse::<u32>().unwrap() * 1000,
-        );
-
-        // Convert here to local time. If wanted the client can convert to UTC; however, it is much harder
-        // for the client or consumer at a later stage to convert to local time without all the additional
-        // information as such the local time stamp conversion is done here.
-        let ldt: DateTime<Local> = DateTime::from(DateTime::<Utc>::from_utc(ndt, Utc));
-
-        ldt.format(format_str).to_string()
-    }
-
-    fn format_monotomic(&self, timestamp_usec: u64) -> String {
-        let usec_string = timestamp_usec.to_string();
-        let (sec_str, micro_str) = split_usec_string(&usec_string);
-
-        format!("{:>5}.{:0>6}", sec_str, micro_str)
-    }
-
-    fn obtain_journal_timestamp(&mut self, journal_entries: &mut HashMap<String, String>) {
-        match self.timestamp_display {
-            Timestamp::Real(fmt_str) if !journal_entries.contains_key(journal_c::JOURNAL_REALTIME_TIMESTAMP_KEY) => {
-                // This gets the naive datetime
-                let naive_ts_usec = self.get_journal_realtime();
-                journal_entries.insert(
-                    journal_c::JOURNAL_REALTIME_TIMESTAMP_KEY.to_string(),
-                    self.format_realtime(naive_ts_usec, fmt_str),
-                );
-            }
-            Timestamp::Mono if !journal_entries.contains_key(journal_c::JOURNAL_MONOTONIC_TIMESTAMP_KEY) => {
-                // This get the journal time
-                let usec_ts = self.get_journal_monotonic();
-                journal_entries.insert(
-                    journal_c::JOURNAL_MONOTONIC_TIMESTAMP_KEY.to_string(),
-                    self.format_monotomic(usec_ts),
-                );
-            }
-            Timestamp::Real(_fmt_str) => {
-                // TODO I really got no idea what todo here
-            }
-            Timestamp::Mono => {
-                // In the case that the timestamp is already provided use and format that.
-                let usec_ts: u64 = journal_entries
-                    .get(journal_c::JOURNAL_MONOTONIC_TIMESTAMP_KEY)
-                    .unwrap()
-                    .parse()
-                    .unwrap();
-                journal_entries.insert(
-                    journal_c::JOURNAL_MONOTONIC_TIMESTAMP_KEY.to_string(),
-                    self.format_monotomic(usec_ts),
-                );
-            }
         }
     }
 }
@@ -217,6 +141,5 @@ impl<'a> Journal<'a> {
 #[test]
 fn test_journal_new() {
     // Test should simply not panic
-    let timestamp = Timestamp::Real(DEFAULT_REALTIME_FORMAT);
-    let _j: Journal = Journal::new(timestamp);
+    let _j: Journal = Journal::new();
 }

@@ -4,4 +4,4 @@ use journalctl_sys as sys;
 mod utils;
 
 mod journal;
-pub use self::journal::{Journal, Timestamp, DEFAULT_REALTIME_FORMAT};
+pub use self::journal::Journal;

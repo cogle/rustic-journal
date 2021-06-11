@@ -1,11 +1,11 @@
-use crate::journal::{Journal, Timestamp, DEFAULT_REALTIME_FORMAT};
+use crate::journal::Journal;
 
-pub struct JournalServer<'a> {
-    journal: Journal<'a>,
+pub struct JournalServer {
+    journal: Journal,
 }
 
-impl<'a> JournalServer<'a> {
-    pub fn new() -> JournalServer<'a> {
+impl JournalServer {
+    pub fn new() -> JournalServer {
         let timestamp = journal::Timestamp::Real(journal::DEFAULT_REALTIME_FORMAT);
         JournalServer {
             journal: Journal::new(timestamp),
