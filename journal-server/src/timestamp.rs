@@ -1,5 +1,6 @@
 use crate::journal::{Journal};
 use chrono::{DateTime, Local, NaiveDateTime, Utc};
+use std::collections::HashMap;
 
 pub const DEFAULT_REALTIME_FORMAT: &str = "%d-%m-%Y %H:%M:%S%.6f%:z";
 
@@ -9,7 +10,7 @@ pub enum Timestamp<'a> {
     Real(&'a str),
 }
 
-fn obtain_journal_timestamp(&mut Journal journal, journal_entries: &mut HashMap<String, String>) {
+pub fn obtain_journal_timestamp(journal: &mut Journal, journal_entries: &mut HashMap<String, String>) {
     match self.timestamp_display {
         Timestamp::Real(fmt_str) if !journal_entries.contains_key(journal_c::JOURNAL_REALTIME_TIMESTAMP_KEY) => {
             // This gets the naive datetime
@@ -45,7 +46,18 @@ fn obtain_journal_timestamp(&mut Journal journal, journal_entries: &mut HashMap<
     }
 }
 
-fn format_realtime(&self, timestamp_usec: u64, format_str: &str) -> String {
+fn split_usec_string(usec_string: &String) -> (&str, &str) {
+    if usec_string.len() > 6 {
+        let sec_str = &usec_string[0..std::cmp::max(0, &usec_string.len() - 6)];
+        let milli_str = &usec_string[std::cmp::max(&usec_string.len() - 6, 0)..];
+
+        return (sec_str, milli_str);
+    } else {
+        return ("0", &usec_string[..]);
+    }
+}
+
+fn format_realtime(timestamp_usec: u64, format_str: &str) -> String {
     let usec_string = timestamp_usec.to_string();
     let (sec_str, micro_str) = split_usec_string(&usec_string);
 
@@ -63,7 +75,7 @@ fn format_realtime(&self, timestamp_usec: u64, format_str: &str) -> String {
     ldt.format(format_str).to_string()
 }
 
-fn format_monotomic(&self, timestamp_usec: u64) -> String {
+fn format_monotomic(timestamp_usec: u64) -> String {
     let usec_string = timestamp_usec.to_string();
     let (sec_str, micro_str) = split_usec_string(&usec_string);
 

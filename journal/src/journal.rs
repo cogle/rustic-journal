@@ -25,17 +25,6 @@ impl Drop for Journal {
     }
 }
 
-fn split_usec_string(usec_string: &String) -> (&str, &str) {
-    if usec_string.len() > 6 {
-        let sec_str = &usec_string[0..std::cmp::max(0, &usec_string.len() - 6)];
-        let milli_str = &usec_string[std::cmp::max(&usec_string.len() - 6, 0)..];
-
-        return (sec_str, milli_str);
-    } else {
-        return ("0", &usec_string[..]);
-    }
-}
-
 impl Journal {
     pub fn new() -> Journal {
         let mut handle = std::ptr::null_mut() as *mut journal_c::sd_journal;
