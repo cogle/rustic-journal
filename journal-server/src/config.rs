@@ -1,9 +1,8 @@
 use crate::timestamp::Timestamp;
 
-pub struct Config<'a> {
-    timestamp:  Timestamp<'a>
+pub struct Config {
+    timestamp: Timestamp,
 }
 
 #[test]
-fn test_config_new() {
-}
+fn test_config_new() {}

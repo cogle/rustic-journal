@@ -1,4 +1,4 @@
-use crate::journal::Journal;
+use journal::Journal;
 
 pub struct JournalServer {
     journal: Journal,
@@ -6,9 +6,8 @@ pub struct JournalServer {
 
 impl JournalServer {
     pub fn new() -> JournalServer {
-        let timestamp = journal::Timestamp::Real(journal::DEFAULT_REALTIME_FORMAT);
         JournalServer {
-            journal: Journal::new(timestamp),
+            journal: Journal::new(),
         }
     }
 

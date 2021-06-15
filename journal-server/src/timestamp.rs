@@ -1,23 +1,28 @@
-use crate::journal::{Journal};
 use chrono::{DateTime, Local, NaiveDateTime, Utc};
+use journal::Journal;
+use journalctl_sys::journal as journal_c;
 use std::collections::HashMap;
 
 pub const DEFAULT_REALTIME_FORMAT: &str = "%d-%m-%Y %H:%M:%S%.6f%:z";
 
 #[derive(Debug)]
-pub enum Timestamp<'a> {
+pub enum Timestamp {
     Mono,
-    Real(&'a str),
+    Real(String),
 }
 
-pub fn obtain_journal_timestamp(journal: &mut Journal, journal_entries: &mut HashMap<String, String>) {
-    match self.timestamp_display {
+pub fn obtain_journal_timestamp(
+    timestamp_display: &Timestamp,
+    journal: &mut Journal,
+    journal_entries: &mut HashMap<String, String>,
+) {
+    match timestamp_display {
         Timestamp::Real(fmt_str) if !journal_entries.contains_key(journal_c::JOURNAL_REALTIME_TIMESTAMP_KEY) => {
             // This gets the naive datetime
             let naive_ts_usec = journal.get_journal_realtime();
             journal_entries.insert(
                 journal_c::JOURNAL_REALTIME_TIMESTAMP_KEY.to_string(),
-                format_realtime(naive_ts_usec, fmt_str),
+                format_realtime(naive_ts_usec, &fmt_str),
             );
         }
         Timestamp::Mono if !journal_entries.contains_key(journal_c::JOURNAL_MONOTONIC_TIMESTAMP_KEY) => {
