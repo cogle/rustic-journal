@@ -1,6 +1,6 @@
+use crate::sys::journal as journal_c;
 use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use journal::Journal;
-use journalctl_sys::journal as journal_c;
 use std::collections::HashMap;
 
 pub const DEFAULT_REALTIME_FORMAT: &str = "%d-%m-%Y %H:%M:%S%.6f%:z";
@@ -34,7 +34,9 @@ pub fn obtain_journal_timestamp(
             );
         }
         Timestamp::Real(_fmt_str) => {
-            // TODO I really got no idea what todo here
+            // So for this its a little complex, there appears to be in the source code a lot of
+            // cases to handle a situation like this and it will have to be copied over and
+            // rustified.
         }
         Timestamp::Mono => {
             // In the case that the timestamp is already provided use and format that.
@@ -85,4 +87,98 @@ fn format_monotomic(timestamp_usec: u64) -> String {
     let (sec_str, micro_str) = split_usec_string(&usec_string);
 
     format!("{:>5}.{:0>6}", sec_str, micro_str)
+}
+
+mod testing {
+    #[test]
+    fn split_usec_string_below_threshold() {
+        {
+            let test_string = "0".to_string();
+            let (top, bot) = super::split_usec_string(&test_string);
+
+            assert_eq!(top, "0");
+            assert_eq!(bot, "0");
+        }
+        {
+            let test_string = "1".to_string();
+            let (top, bot) = super::split_usec_string(&test_string);
+
+            assert_eq!(top, "0");
+            assert_eq!(bot, "1");
+        }
+        {
+            let test_string = "00".to_string();
+            let (top, bot) = super::split_usec_string(&test_string);
+
+            assert_eq!(top, "0");
+            assert_eq!(bot, "00");
+        }
+        {
+            let test_string = "10".to_string();
+            let (top, bot) = super::split_usec_string(&test_string);
+
+            assert_eq!(top, "0");
+            assert_eq!(bot, "10");
+        }
+        {
+            let test_string = "123".to_string();
+            let (top, bot) = super::split_usec_string(&test_string);
+
+            assert_eq!(top, "0");
+            assert_eq!(bot, "123");
+        }
+        {
+            let test_string = "1234".to_string();
+            let (top, bot) = super::split_usec_string(&test_string);
+
+            assert_eq!(top, "0");
+            assert_eq!(bot, "1234");
+        }
+        {
+            let test_string = "12345".to_string();
+            let (top, bot) = super::split_usec_string(&test_string);
+
+            assert_eq!(top, "0");
+            assert_eq!(bot, "12345");
+        }
+        {
+            let test_string = "123456".to_string();
+            let (top, bot) = super::split_usec_string(&test_string);
+
+            assert_eq!(top, "0");
+            assert_eq!(bot, "123456");
+        }
+    }
+
+    #[test]
+    fn split_usec_string_above_threshold() {
+        {
+            let test_string = "1234567".to_string();
+            let (top, bot) = super::split_usec_string(&test_string);
+
+            assert_eq!(top, "1");
+            assert_eq!(bot, "234567");
+        }
+        {
+            let test_string = "7654321".to_string();
+            let (top, bot) = super::split_usec_string(&test_string);
+
+            assert_eq!(top, "7");
+            assert_eq!(bot, "654321");
+        }
+        {
+            let test_string = "12345673913148412741".to_string();
+            let (top, bot) = super::split_usec_string(&test_string);
+
+            assert_eq!(top, "12345673913148");
+            assert_eq!(bot, "412741");
+        }
+        {
+            let test_string = "4859248723472492123456733312913148412301843183201730741".to_string();
+            let (top, bot) = super::split_usec_string(&test_string);
+
+            assert_eq!(top, "4859248723472492123456733312913148412301843183201");
+            assert_eq!(bot, "730741");
+        }
+    }
 }

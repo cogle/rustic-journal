@@ -7,6 +7,11 @@ TODO:
 6. Make async.
 7. Pass in the hash map to read it can be mutable, no need to recreate.
     Consider updating the keys if they exists and removing those that do not exists in the current set difference between current key set and previous
+8. Will need to make the timestamp checking much more akin to the way systemd does it.
+9. Consider making this much more fault tolerant, one such way is to return an error code to the use instead of what would likely happen(crash). 
+    Crashing is ok for certain applications but this should be a long running fault tolerant app and the backend impl should support this.
+    While likely 100% fault tolerance is not possible it should strive to be as robust as possible. Later goal though since everything else should 
+    just work beofre tackling this.
 
 
 
