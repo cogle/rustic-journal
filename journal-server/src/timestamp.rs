@@ -3,8 +3,6 @@ use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use journal::Journal;
 use std::collections::HashMap;
 
-pub const DEFAULT_REALTIME_FORMAT: &str = "%d-%m-%Y %H:%M:%S%.6f%:z";
-
 #[derive(Debug)]
 pub enum Timestamp {
     Mono,

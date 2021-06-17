@@ -5,8 +5,8 @@ pub struct JournalServer {
 }
 
 impl JournalServer {
-    pub fn new() -> JournalServer {
-        JournalServer {
+    pub fn new() -> Self {
+        Self {
             journal: Journal::new(),
         }
     }
