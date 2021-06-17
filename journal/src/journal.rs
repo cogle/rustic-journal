@@ -1,6 +1,5 @@
 use crate::sys::journal as journal_c;
 use libc::{c_void, size_t};
-use std::cmp;
 use std::collections::HashMap;
 use std::ffi::CStr;
 
@@ -26,7 +25,7 @@ impl Drop for Journal {
 }
 
 impl Journal {
-    pub fn new() -> Journal {
+    pub fn new() -> Self {
         let mut handle = std::ptr::null_mut() as *mut journal_c::sd_journal;
 
         ffi_invoke_and_expect!(journal_c::sd_journal_open(
@@ -34,7 +33,7 @@ impl Journal {
             journal_c::SD_JOURNAL_LOCAL_ONLY
         ));
 
-        Journal { journal_handle: handle }
+        Self { journal_handle: handle }
     }
 
     // TODO: Make this async so that when we reach the end we wait via sd_journal_wait()
@@ -81,6 +80,7 @@ impl Journal {
 
     fn obtain_journal_data(&mut self) -> JournalData {
         // NOTE: Marked mut because this goes into the C func and its unknown as to what may go on there.
+        #[allow(unused_mut)]
         let mut data_ptr = std::ptr::null_mut() as *mut c_void;
         let mut len: size_t = 0;
 
