@@ -11,7 +11,7 @@ TODO:
 9. Consider making this much more fault tolerant, one such way is to return an error code to the use instead of what would likely happen(crash). 
     Crashing is ok for certain applications but this should be a long running fault tolerant app and the backend impl should support this.
     While likely 100% fault tolerance is not possible it should strive to be as robust as possible. Later goal though since everything else should 
-    just work beofre tackling this.
+    just work beofre tackling this. Note for future self, may involve making the Map and Variant with an String and Error as possible values
 
 
 
