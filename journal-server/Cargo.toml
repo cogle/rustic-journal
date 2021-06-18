@@ -11,3 +11,4 @@ journalctl-sys = { version = "0.1.0", path = "../journalctl-sys" }
 journal = { version = "0.1.0", path = "../journal" }
 tokio = { version = "1.5.0", features = ["full"] }
 chrono = {version = "0.4.19"}
+clap = "3.0.0-beta.2"
